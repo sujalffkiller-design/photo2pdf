@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="description" content="Convert photos into PDF documents privately in your browser." />
+  <title>Photo2PDF — Convert Photos to PDF</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Photo2PDF home">
+      <span class="brand-icon">P</span><span>Photo<span class="brand-accent">2PDF</span></span>
+    </a>
+    <div class="privacy-badge"><span class="status-dot"></span> Private &amp; secure</div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <span class="eyebrow">YOUR PHOTOS. ONE DOCUMENT.</span>
+      <h1>Photos to PDF,<br><span>made simple.</span></h1>
+      <p>Turn your images into a polished PDF in seconds.<br class="desktop-break"> Free to use. No account. No uploads.</p>
+    </section>
+
+    <section class="workspace" aria-labelledby="createTitle">
+      <div class="section-heading">
+        <div><h2 id="createTitle">Create your PDF</h2><p>Choose photos, arrange them, and convert.</p></div>
+        <span id="photoCount" class="count-badge">0 photos</span>
+      </div>
+
+      <div class="upload-zone" id="dropZone">
+        <div class="upload-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="5" width="32" height="38" rx="5" stroke="currentColor" stroke-width="2.5"/><circle cx="19" cy="17" r="3.5" stroke="currentColor" stroke-width="2.5"/><path d="M11 35l10-10 6 6 4-4 6 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Drop your photos here</h3>
+        <p>or choose images from your device</p>
+        <div class="upload-actions">
+          <button type="button" class="btn btn-primary" id="chooseBtn">Choose photos</button>
+          <button type="button" class="btn btn-secondary" id="cameraBtn"><span aria-hidden="true">▣</span> Take a photo</button>
+        </div>
+        <span class="upload-hint">JPG, PNG, WEBP, GIF, BMP and other browser-supported images</span>
+        <input id="photoInput" type="file" accept="image/*" multiple hidden>
+        <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+      </div>
+
+      <section id="editor" class="editor hidden" aria-labelledby="photosTitle">
+        <div class="editor-heading">
+          <div><h3 id="photosTitle">Your photos</h3><p>Drag photos to reorder them, or use the arrow buttons.</p></div>
+          <button type="button" id="clearBtn" class="text-button">Remove all</button>
+        </div>
+        <div id="photoGrid" class="photo-grid"></div>
+      </section>
+
+      <section class="settings" aria-labelledby="settingsTitle">
+        <h3 id="settingsTitle">PDF settings</h3>
+        <div class="settings-grid">
+          <div class="field"><label for="pageSize">Paper size</label><select id="pageSize"><option value="a4">A4</option><option value="letter">US Letter</option><option value="fit">Fit to image</option></select></div>
+          <div class="field"><label for="orientation">Orientation</label><select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
+          <div class="field"><label for="pdfName">PDF file name</label><input id="pdfName" type="text" value="my-photos" maxlength="80" placeholder="my-photos"></div>
+          <div class="field"><label for="imageQuality">Image quality</label><select id="imageQuality"><option value="1">High quality</option><option value="0.8" selected>Balanced</option><option value="0.6">Smaller file</option></select></div>
+        </div>
+        <div class="privacy-note"><span class="privacy-lock" aria-hidden="true">✓</span><div><strong>Your photos stay on your device</strong><p>Conversion happens in your browser. Your photos aren't uploaded to our server. The PDF library loads from a CDN.</p></div></div>
+        <button type="button" id="convertBtn" class="btn btn-primary convert-btn" disabled><span aria-hidden="true">↓</span> Convert &amp; download PDF</button>
+        <p id="status" class="status" role="status" aria-live="polite">Add at least one photo to get started.</p>
+      </section>
+    </section>
+
+    <section class="steps-section">
+      <h2>Three steps. One PDF.</h2>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">01</span><h3>Upload</h3><p>Select one photo or a whole collection.</p></article>
+        <article class="step-card"><span class="step-number">02</span><h3>Arrange</h3><p>Put your photos in the right page order.</p></article>
+        <article class="step-card"><span class="step-number">03</span><h3>Download</h3><p>Generate your PDF and save it instantly.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <a class="brand footer-brand" href="#"><span class="brand-icon">P</span><span>Photo<span class="brand-accent">2PDF</span></span></a>
+    <p>Simple tools. Private by design.</p>
+    <span>© <span id="year"></span> Photo2PDF</span>
+  </footer>
+</body>
+</html>
