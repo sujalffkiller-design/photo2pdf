@@ -224,71 +224,237 @@
   }
 
   convertBtn.addEventListener("click", async () => {
-    if (!photos.length) return;
-    if (!window.jspdf?.jsPDF) {
-      setStatus("PDF library could not load. Check your internet connection and reload this page.", "error");
-      return;
-    }
+    
+let currentPdfBlob = null;
+let currentPdfUrl = null;
+let currentPdfFilename = "my-photos.pdf";
 
-    const originalLabel = convertBtn.innerHTML;
-    convertBtn.disabled = true;
-    convertBtn.textContent = "Preparing your PDF…";
-    setStatus("Converting photos on your device. Please wait.");
+// Create the save/share button without changing your HTML layout.
+const savePdfBtn = document.createElement("button");
+savePdfBtn.type = "button";
+savePdfBtn.id = "savePdfBtn";
+savePdfBtn.className = "btn btn-primary convert-btn hidden";
+savePdfBtn.textContent = "Share / Save PDF";
+convertBtn.insertAdjacentElement("afterend", savePdfBtn);
 
+// Detect iPhone and iPad browsers.
+function isAppleMobile() {
+  return /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+// Download normally on PC and Android.
+function downloadPdf() {
+  if (!currentPdfBlob) return;
+
+  const link = document.createElement("a");
+  link.href = currentPdfUrl;
+  link.download = currentPdfFilename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setStatus("Your PDF download has started.", "success");
+}
+
+// This button is clicked separately, preserving iPhone share permission.
+savePdfBtn.addEventListener("click", async () => {
+  if (!currentPdfBlob) return;
+
+  const file = new File(
+    [currentPdfBlob],
+    currentPdfFilename,
+    { type: "application/pdf" }
+  );
+
+  // Use the native iPhone Share menu when supported.
+  if (
+    navigator.share &&
+    navigator.canShare &&
+    navigator.canShare({ files: [file] })
+  ) {
     try {
-      const { jsPDF } = window.jspdf;
-      const size = $("pageSize").value;
-      const orientation = $("orientation").value;
-      const quality = Number($("imageQuality").value);
-      let pdf = null;
+      await navigator.share({
+        files: [file],
+        title: currentPdfFilename,
+        text: "Created with Photo2PDF"
+      });
 
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
-        setStatus(`Processing photo ${i + 1} of ${photos.length}…`);
-        const image = await loadImage(photo.url);
-        const jpeg = imageToJpeg(image, quality);
-
-        if (size === "fit") {
-          const width = image.naturalWidth * 0.264583;
-          const height = image.naturalHeight * 0.264583;
-          if (!pdf) {
-            pdf = new jsPDF({ orientation: width > height ? "landscape" : "portrait", unit: "mm", format: [width, height], compress: true });
-          } else {
-            pdf.addPage([width, height], width > height ? "landscape" : "portrait");
-          }
-          pdf.addImage(jpeg, "JPEG", 0, 0, width, height, undefined, "FAST");
-        } else {
-          const format = size === "letter" ? "letter" : "a4";
-          if (!pdf) {
-            pdf = new jsPDF({ orientation, unit: "mm", format, compress: true });
-          } else {
-            pdf.addPage(format, orientation);
-          }
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          const margin = 8;
-          const maxWidth = pageWidth - margin * 2;
-          const maxHeight = pageHeight - margin * 2;
-          const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
-          const drawWidth = image.naturalWidth * scale;
-          const drawHeight = image.naturalHeight * scale;
-          const x = (pageWidth - drawWidth) / 2;
-          const y = (pageHeight - drawHeight) / 2;
-          pdf.addImage(jpeg, "JPEG", x, y, drawWidth, drawHeight, undefined, "FAST");
-        }
-      }
-
-      if (!pdf) throw new Error("No photos were available to convert.");
-      pdf.save(`${safeFilename($("pdfName").value)}.pdf`);
-      setStatus(`Success! Your PDF contains ${photos.length} page${photos.length === 1 ? "" : "s"}.`, "success");
+      setStatus("Share menu opened. Choose Save to Files to keep your PDF.", "success");
     } catch (error) {
-      console.error(error);
-      setStatus(error?.message || "Something went wrong while creating your PDF. Try fewer or smaller photos.", "error");
-    } finally {
-      convertBtn.disabled = photos.length === 0;
-      convertBtn.innerHTML = originalLabel;
+      if (error.name === "AbortError") {
+        setStatus("Sharing cancelled. Your PDF is still ready.", "");
+      } else {
+        setStatus("Sharing was unavailable. Opening your PDF instead.", "error");
+        window.open(currentPdfUrl, "_blank");
+      }
     }
+  } else {
+    // Fallback: open the PDF so the user can save it manually.
+    const opened = window.open(currentPdfUrl, "_blank");
+
+    if (opened) {
+      setStatus(
+        "Your PDF is open. Use the Share button and choose Save to Files.",
+        "success"
+      );
+    } else {
+      setStatus(
+        "Allow pop-ups, then tap Share / Save PDF again.",
+        "error"
+      );
+    }
+  }
+});
+
+convertBtn.addEventListener("click", async () => {
+  if (!photos.length) return;
+
+  if (!window.jspdf?.jsPDF) {
+    setStatus(
+      "PDF library could not load. Check your internet connection and reload this page.",
+      "error"
+    );
+    return;
+  }
+
+  const originalLabel = convertBtn.innerHTML;
+  convertBtn.disabled = true;
+  savePdfBtn.classList.add("hidden");
+  savePdfBtn.disabled = true;
+  convertBtn.textContent = "Preparing your PDF…";
+  setStatus("Converting photos on your device. Please wait.");
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const size = $("pageSize").value;
+    const orientation = $("orientation").value;
+    const quality = Number($("imageQuality").value);
+
+    let pdf = null;
+
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i];
+
+      setStatus(`Processing photo ${i + 1} of ${photos.length}…`);
+
+      const image = await loadImage(photo.url);
+      const jpeg = imageToJpeg(image, quality);
+
+      if (size === "fit") {
+        const width = image.naturalWidth * 0.264583;
+        const height = image.naturalHeight * 0.264583;
+
+        if (!pdf) {
+          pdf = new jsPDF({
+            orientation: width > height ? "landscape" : "portrait",
+            unit: "mm",
+            format: [width, height],
+            compress: true
+          });
+        } else {
+          pdf.addPage(
+            [width, height],
+            width > height ? "landscape" : "portrait"
+          );
+        }
+
+        pdf.addImage(jpeg, "JPEG", 0, 0, width, height, undefined, "FAST");
+
+      } else {
+        const format = size === "letter" ? "letter" : "a4";
+
+        if (!pdf) {
+          pdf = new jsPDF({
+            orientation,
+            unit: "mm",
+            format,
+            compress: true
+          });
+        } else {
+          pdf.addPage(format, orientation);
+        }
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const margin = 8;
+        const maxWidth = pageWidth - margin * 2;
+        const maxHeight = pageHeight - margin * 2;
+
+        const scale = Math.min(
+          maxWidth / image.naturalWidth,
+          maxHeight / image.naturalHeight
+        );
+
+        const drawWidth = image.naturalWidth * scale;
+        const drawHeight = image.naturalHeight * scale;
+
+        const x = (pageWidth - drawWidth) / 2;
+        const y = (pageHeight - drawHeight) / 2;
+
+        pdf.addImage(
+          jpeg,
+          "JPEG",
+          x,
+          y,
+          drawWidth,
+          drawHeight,
+          undefined,
+          "FAST"
+        );
+      }
+    }
+
+    if (!pdf) {
+      throw new Error("No photos were available to convert.");
+    }
+
+    // Generate a PDF Blob instead of using pdf.save().
+    currentPdfBlob = pdf.output("blob");
+    currentPdfFilename = `${safeFilename($("pdfName").value)}.pdf`;
+
+    if (currentPdfUrl) {
+      URL.revokeObjectURL(currentPdfUrl);
+    }
+
+    currentPdfUrl = URL.createObjectURL(currentPdfBlob);
+
+    savePdfBtn.classList.remove("hidden");
+    savePdfBtn.disabled = false;
+
+    if (isAppleMobile()) {
+      savePdfBtn.textContent = "Share / Save PDF";
+      setStatus(
+        `PDF created successfully! ${photos.length} page(s). Tap Share / Save PDF, then choose Save to Files.`,
+        "success"
+      );
+    } else {
+      savePdfBtn.textContent = "Download PDF again";
+      downloadPdf();
+
+      setStatus(
+        `Success! Your PDF contains ${photos.length} page(s).`,
+        "success"
+      );
+    }
+
+  } catch (error) {
+    console.error(error);
+
+    setStatus(
+      error?.message ||
+      "Something went wrong while creating your PDF. Try fewer or smaller photos.",
+      "error"
+    );
+
+  } finally {
+    convertBtn.disabled = photos.length === 0;
+    convertBtn.innerHTML = originalLabel;
+  }
   });
+
 
   render();
 })();
+})
